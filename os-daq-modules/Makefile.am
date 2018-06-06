@@ -98,6 +98,18 @@ endif
     libdaq_static_modules_la_CFLAGS += -DBUILD_NETMAP_MODULE
 endif
 
+if BUILD_MEMIF_MODULE
+if BUILD_SHARED_MODULES
+    pkglib_LTLIBRARIES += daq_memif.la
+    daq_memif_la_SOURCES = daq_memif.c
+    daq_memif_la_CFLAGS = -DBUILDING_SO
+    daq_memif_la_LDFLAGS = -module -export-dynamic -avoid-version -shared @XCCFLAGS@
+    daq_memif_la_LIBADD = $(top_builddir)/sfbpf/libsfbpf.la
+endif
+    libdaq_static_modules_la_SOURCES += daq_memif.c
+    libdaq_static_modules_la_CFLAGS += -DBUILD_MEMIF_MODULE
+endif
+
 AM_CPPFLAGS = -I$(top_srcdir)/api -I$(top_srcdir)/sfbpf -I$(top_builddir)/sfbpf
 
 EXTRA_DIST = daq-modules-config.in

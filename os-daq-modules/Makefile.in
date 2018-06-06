@@ -110,6 +110,9 @@ host_triplet = @host@
 @BUILD_NETMAP_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@am__append_19 = daq_netmap.la
 @BUILD_NETMAP_MODULE_TRUE@am__append_20 = daq_netmap.c
 @BUILD_NETMAP_MODULE_TRUE@am__append_21 = -DBUILD_NETMAP_MODULE
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@am__append_22 = daq_memif.la
+@BUILD_MEMIF_MODULE_TRUE@am__append_23 = daq_memif.c
+@BUILD_MEMIF_MODULE_TRUE@am__append_24 = -DBUILD_MEMIF_MODULE
 subdir = os-daq-modules
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -199,6 +202,16 @@ daq_ipq_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 @BUILD_IPQ_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@am_daq_ipq_la_rpath =  \
 @BUILD_IPQ_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@	-rpath \
 @BUILD_IPQ_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@	$(pkglibdir)
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_memif_la_DEPENDENCIES = $(top_builddir)/sfbpf/libsfbpf.la
+am__daq_memif_la_SOURCES_DIST = daq_memif.c
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@am_daq_memif_la_OBJECTS = daq_memif_la-daq_memif.lo
+daq_memif_la_OBJECTS = $(am_daq_memif_la_OBJECTS)
+daq_memif_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(daq_memif_la_CFLAGS) \
+	$(CFLAGS) $(daq_memif_la_LDFLAGS) $(LDFLAGS) -o $@
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@am_daq_memif_la_rpath =  \
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@	-rpath \
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@	$(pkglibdir)
 @BUILD_NETMAP_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_netmap_la_DEPENDENCIES = $(top_builddir)/sfbpf/libsfbpf.la
 am__daq_netmap_la_SOURCES_DIST = daq_netmap.c
 @BUILD_NETMAP_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@am_daq_netmap_la_OBJECTS = daq_netmap_la-daq_netmap.lo
@@ -232,7 +245,7 @@ daq_pcap_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 libdaq_static_modules_la_DEPENDENCIES =
 am__libdaq_static_modules_la_SOURCES_DIST = daq_static_modules.c \
 	daq_static_modules.h daq_afpacket.c daq_pcap.c daq_dump.c \
-	daq_ipfw.c daq_ipq.c daq_nfq.c daq_netmap.c
+	daq_ipfw.c daq_ipq.c daq_nfq.c daq_netmap.c daq_memif.c
 @BUILD_AFPACKET_MODULE_TRUE@am__objects_1 = libdaq_static_modules_la-daq_afpacket.lo
 @BUILD_PCAP_MODULE_TRUE@am__objects_2 =  \
 @BUILD_PCAP_MODULE_TRUE@	libdaq_static_modules_la-daq_pcap.lo
@@ -245,11 +258,12 @@ am__libdaq_static_modules_la_SOURCES_DIST = daq_static_modules.c \
 @BUILD_NFQ_MODULE_TRUE@am__objects_6 =  \
 @BUILD_NFQ_MODULE_TRUE@	libdaq_static_modules_la-daq_nfq.lo
 @BUILD_NETMAP_MODULE_TRUE@am__objects_7 = libdaq_static_modules_la-daq_netmap.lo
+@BUILD_MEMIF_MODULE_TRUE@am__objects_8 = libdaq_static_modules_la-daq_memif.lo
 am_libdaq_static_modules_la_OBJECTS =  \
 	libdaq_static_modules_la-daq_static_modules.lo \
 	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
 	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7)
+	$(am__objects_7) $(am__objects_8)
 libdaq_static_modules_la_OBJECTS =  \
 	$(am_libdaq_static_modules_la_OBJECTS)
 libdaq_static_modules_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
@@ -293,11 +307,13 @@ am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(daq_afpacket_la_SOURCES) $(daq_dump_la_SOURCES) \
 	$(daq_ipfw_la_SOURCES) $(daq_ipq_la_SOURCES) \
-	$(daq_netmap_la_SOURCES) $(daq_nfq_la_SOURCES) \
-	$(daq_pcap_la_SOURCES) $(libdaq_static_modules_la_SOURCES)
+	$(daq_memif_la_SOURCES) $(daq_netmap_la_SOURCES) \
+	$(daq_nfq_la_SOURCES) $(daq_pcap_la_SOURCES) \
+	$(libdaq_static_modules_la_SOURCES)
 DIST_SOURCES = $(am__daq_afpacket_la_SOURCES_DIST) \
 	$(am__daq_dump_la_SOURCES_DIST) \
 	$(am__daq_ipfw_la_SOURCES_DIST) $(am__daq_ipq_la_SOURCES_DIST) \
+	$(am__daq_memif_la_SOURCES_DIST) \
 	$(am__daq_netmap_la_SOURCES_DIST) \
 	$(am__daq_nfq_la_SOURCES_DIST) $(am__daq_pcap_la_SOURCES_DIST) \
 	$(am__libdaq_static_modules_la_SOURCES_DIST)
@@ -445,6 +461,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -458,15 +475,16 @@ ACLOCAL_AMFLAGS = -I m4
 bin_SCRIPTS = daq-modules-config
 pkglib_LTLIBRARIES = $(am__append_1) $(am__append_4) $(am__append_7) \
 	$(am__append_10) $(am__append_13) $(am__append_16) \
-	$(am__append_19)
+	$(am__append_19) $(am__append_22)
 lib_LTLIBRARIES = libdaq_static_modules.la
 libdaq_static_modules_la_SOURCES = daq_static_modules.c \
 	daq_static_modules.h $(am__append_2) $(am__append_5) \
 	$(am__append_8) $(am__append_11) $(am__append_14) \
-	$(am__append_17) $(am__append_20)
+	$(am__append_17) $(am__append_20) $(am__append_23)
 libdaq_static_modules_la_CFLAGS = $(AM_CFLAGS) $(am__append_3) \
 	$(am__append_6) $(am__append_9) $(am__append_12) \
-	$(am__append_15) $(am__append_18) $(am__append_21)
+	$(am__append_15) $(am__append_18) $(am__append_21) \
+	$(am__append_24)
 libdaq_static_modules_la_LDFLAGS = -static -avoid-version
 libdaq_static_modules_la_LIBADD = 
 @BUILD_AFPACKET_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_afpacket_la_SOURCES = daq_afpacket.c
@@ -497,6 +515,10 @@ libdaq_static_modules_la_LIBADD =
 @BUILD_NETMAP_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_netmap_la_CFLAGS = $(AM_CFLAGS) -DBUILDING_SO
 @BUILD_NETMAP_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_netmap_la_LDFLAGS = -module -export-dynamic -avoid-version -shared @XCCFLAGS@
 @BUILD_NETMAP_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_netmap_la_LIBADD = $(top_builddir)/sfbpf/libsfbpf.la
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_memif_la_SOURCES = daq_memif.c
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_memif_la_CFLAGS = -DBUILDING_SO
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_memif_la_LDFLAGS = -module -export-dynamic -avoid-version -shared @XCCFLAGS@
+@BUILD_MEMIF_MODULE_TRUE@@BUILD_SHARED_MODULES_TRUE@daq_memif_la_LIBADD = $(top_builddir)/sfbpf/libsfbpf.la
 AM_CPPFLAGS = -I$(top_srcdir)/api -I$(top_srcdir)/sfbpf -I$(top_builddir)/sfbpf
 EXTRA_DIST = daq-modules-config.in
 all: all-am
@@ -617,6 +639,9 @@ daq_ipfw.la: $(daq_ipfw_la_OBJECTS) $(daq_ipfw_la_DEPENDENCIES) $(EXTRA_daq_ipfw
 daq_ipq.la: $(daq_ipq_la_OBJECTS) $(daq_ipq_la_DEPENDENCIES) $(EXTRA_daq_ipq_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(daq_ipq_la_LINK) $(am_daq_ipq_la_rpath) $(daq_ipq_la_OBJECTS) $(daq_ipq_la_LIBADD) $(LIBS)
 
+daq_memif.la: $(daq_memif_la_OBJECTS) $(daq_memif_la_DEPENDENCIES) $(EXTRA_daq_memif_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(daq_memif_la_LINK) $(am_daq_memif_la_rpath) $(daq_memif_la_OBJECTS) $(daq_memif_la_LIBADD) $(LIBS)
+
 daq_netmap.la: $(daq_netmap_la_OBJECTS) $(daq_netmap_la_DEPENDENCIES) $(EXTRA_daq_netmap_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(daq_netmap_la_LINK) $(am_daq_netmap_la_rpath) $(daq_netmap_la_OBJECTS) $(daq_netmap_la_LIBADD) $(LIBS)
 
@@ -674,6 +699,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/daq_dump_la-daq_dump.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/daq_ipfw_la-daq_ipfw.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/daq_ipq_la-daq_ipq.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/daq_memif_la-daq_memif.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/daq_netmap_la-daq_netmap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/daq_nfq_la-daq_nfq.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/daq_pcap_la-daq_pcap.Plo@am__quote@
@@ -681,6 +707,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdaq_static_modules_la-daq_dump.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdaq_static_modules_la-daq_ipfw.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdaq_static_modules_la-daq_ipq.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdaq_static_modules_la-daq_memif.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdaq_static_modules_la-daq_netmap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdaq_static_modules_la-daq_nfq.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdaq_static_modules_la-daq_pcap.Plo@am__quote@
@@ -734,6 +761,13 @@ daq_ipq_la-daq_ipq.lo: daq_ipq.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='daq_ipq.c' object='daq_ipq_la-daq_ipq.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(daq_ipq_la_CFLAGS) $(CFLAGS) -c -o daq_ipq_la-daq_ipq.lo `test -f 'daq_ipq.c' || echo '$(srcdir)/'`daq_ipq.c
+
+daq_memif_la-daq_memif.lo: daq_memif.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(daq_memif_la_CFLAGS) $(CFLAGS) -MT daq_memif_la-daq_memif.lo -MD -MP -MF $(DEPDIR)/daq_memif_la-daq_memif.Tpo -c -o daq_memif_la-daq_memif.lo `test -f 'daq_memif.c' || echo '$(srcdir)/'`daq_memif.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/daq_memif_la-daq_memif.Tpo $(DEPDIR)/daq_memif_la-daq_memif.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='daq_memif.c' object='daq_memif_la-daq_memif.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(daq_memif_la_CFLAGS) $(CFLAGS) -c -o daq_memif_la-daq_memif.lo `test -f 'daq_memif.c' || echo '$(srcdir)/'`daq_memif.c
 
 daq_netmap_la-daq_netmap.lo: daq_netmap.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(daq_netmap_la_CFLAGS) $(CFLAGS) -MT daq_netmap_la-daq_netmap.lo -MD -MP -MF $(DEPDIR)/daq_netmap_la-daq_netmap.Tpo -c -o daq_netmap_la-daq_netmap.lo `test -f 'daq_netmap.c' || echo '$(srcdir)/'`daq_netmap.c
@@ -811,6 +845,13 @@ libdaq_static_modules_la-daq_netmap.lo: daq_netmap.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='daq_netmap.c' object='libdaq_static_modules_la-daq_netmap.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdaq_static_modules_la_CFLAGS) $(CFLAGS) -c -o libdaq_static_modules_la-daq_netmap.lo `test -f 'daq_netmap.c' || echo '$(srcdir)/'`daq_netmap.c
+
+libdaq_static_modules_la-daq_memif.lo: daq_memif.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdaq_static_modules_la_CFLAGS) $(CFLAGS) -MT libdaq_static_modules_la-daq_memif.lo -MD -MP -MF $(DEPDIR)/libdaq_static_modules_la-daq_memif.Tpo -c -o libdaq_static_modules_la-daq_memif.lo `test -f 'daq_memif.c' || echo '$(srcdir)/'`daq_memif.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libdaq_static_modules_la-daq_memif.Tpo $(DEPDIR)/libdaq_static_modules_la-daq_memif.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='daq_memif.c' object='libdaq_static_modules_la-daq_memif.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdaq_static_modules_la_CFLAGS) $(CFLAGS) -c -o libdaq_static_modules_la-daq_memif.lo `test -f 'daq_memif.c' || echo '$(srcdir)/'`daq_memif.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

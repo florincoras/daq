@@ -111,6 +111,22 @@ if test "x$with_netmap_includes" != "xno"; then
     CPPFLAGS="${CPPFLAGS} -I${with_netmap_includes}"
 fi
 
+AC_ARG_WITH(memif_includes,
+            [  --with-memif-includes=DIR    memif include directory],
+            [with_memif_includes="$withval"], [with_memif_includes="no"])
+
+if test "x$with_memif_includes" != "xno"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_memif_includes}"
+fi
+
+AC_ARG_WITH(memif_libraries,
+            [  --with-memif-libraries=DIR    memif library directory],
+            [with_memif_libraries="$withval"], [with_memif_libraries="no"])
+
+if test "x$with_memif_libraries" != "xno"; then
+    MEMIF_LDFLAGS="-L${with_memif_libraries}"
+fi
+
 DEFAULT_ENABLE=yes
 
 # Modules configuration
@@ -226,6 +242,30 @@ if test "$enable_netmap_module" = yes; then
 fi
 AM_CONDITIONAL([BUILD_NETMAP_MODULE], [test "$enable_netmap_module" = yes])
 
+
+# memif Module
+AC_ARG_ENABLE(memif-module,
+              AS_HELP_STRING([--disable-memif-module],[don't build the bundled memif module]),
+              [enable_memif_module="$enableval"], [enable_memif_module="$DEFAULT_ENABLE"])
+if test "$enable_memif_module" = yes; then
+#    AC_CHECK_HEADERS([libmemif/libmemif.h], [], [enable_memif_module=no], [
+#                      #include <stdint.h>
+#                      #include <sys/socket.h>
+#                      #include <net/if.h>
+#                      ])
+#    AC_CHECK_DECL([MEMIF_API], [], [enable_netmap_module=no], [
+#                   #include <stdint.h>
+#                   #include <sys/socket.h>
+#                   #include <net/if.h>
+#                   #include <net/netmap.h>
+#                   ])
+    if test "$enable_memif_module" = yes; then
+        STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} -lsvm -lvlibmemoryclient -lvppinfra"
+	CFLAGS="${CFLAGS} -std=gnu11 -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare"
+    fi
+fi
+AM_CONDITIONAL([BUILD_MEMIF_MODULE], [test "$enable_memif_module" = yes])
+
 if test "$enable_ipq_module" = yes -o "$enable_nfq_module" = yes ; then
     AC_CHECK_HEADERS(dnet.h,,DNET_H="no")
     AC_CHECK_HEADERS(dumbnet.h,,DUMBNET_H="no")
@@ -268,6 +308,7 @@ AM_CONDITIONAL([BUILD_MODULES], [test "$enable_afpacket_module" = yes -o \
                                       "$enable_dump_module" = yes -o \
                                       "$enable_ipfw_module" = yes -o \
                                       "$enable_ipq_module" = yes -o \
+                                      "$enable_memif_module" = yes -o \
                                       "$enable_nfq_module" = yes -o \
                                       "$enable_pcap_module" = yes])
 
@@ -318,6 +359,7 @@ echo "Build AFPacket DAQ module.. : $enable_afpacket_module"
 echo "Build Dump DAQ module...... : $enable_dump_module"
 echo "Build IPFW DAQ module...... : $enable_ipfw_module"
 echo "Build IPQ DAQ module....... : $enable_ipq_module"
+echo "Build memif DAQ module..... : $enable_memif_module"
 echo "Build NFQ DAQ module....... : $enable_nfq_module"
 echo "Build PCAP DAQ module...... : $enable_pcap_module"
 echo "Build netmap DAQ module.... : $enable_netmap_module"
