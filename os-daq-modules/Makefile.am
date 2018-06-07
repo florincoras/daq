@@ -102,9 +102,9 @@ if BUILD_MEMIF_MODULE
 if BUILD_SHARED_MODULES
     pkglib_LTLIBRARIES += daq_memif.la
     daq_memif_la_SOURCES = daq_memif.c
-    daq_memif_la_CFLAGS = -DBUILDING_SO
-    daq_memif_la_LDFLAGS = -module -export-dynamic -avoid-version -shared @XCCFLAGS@ @MEMIF_LDFLAGS@
-    daq_memif_la_LIBADD = -lvppinfra -lsvm -lvlibmemoryclient -lpthread -lm -lrt -lmemif @MEMIF_LDFLAGS@ $(top_builddir)/sfbpf/libsfbpf.la
+    daq_memif_la_CFLAGS = -DBUILDING_SO -O0 -g
+    daq_memif_la_LDFLAGS = -module -export-dynamic -avoid-version -shared @XCCFLAGS@ @MEMIF_LDFLAGS@ @VPP_LDFLAGS@
+    daq_memif_la_LIBADD = -lvppinfra -lsvm -lvlibmemoryclient -lpthread -lm -lrt -lmemif @MEMIF_LDFLAGS@ @VPP_LDFLAGS@ $(top_builddir)/sfbpf/libsfbpf.la
 endif
     libdaq_static_modules_la_SOURCES += daq_memif.c
     libdaq_static_modules_la_CFLAGS += -DBUILD_MEMIF_MODULE

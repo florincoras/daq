@@ -243,7 +243,7 @@ int memif_daq_init_mem (void)
 #define MEMIF_IFACE_RX_QUEUES 1
 #define MEMIF_IFACE_TX_QUEUES 1
 #define MEMIF_IFACE_BUFFER_SIZE 2048
-#define MEMIF_IFACE_RING_SIZE 1024
+#define MEMIF_IFACE_RING_SIZE 2048
 
 static void memif_daq_send_create_memif (Memif_Context_t *mmc)
 {
@@ -282,19 +282,25 @@ static void memif_daq_send_snort_enable_disable (Memif_Context_t *mmc, u8 is_ena
 
 int on_connect(memif_conn_handle_t conn, void *private_ctx)
 {
-    clib_warning("memif connected!");
+	Memif_Interface_t *iface = &md_context.ifaces[0];
+    DBG ("memif connected!");
+    memif_refill_queue(iface->conn, 0, -1, 0);
     return 0;
 }
 
 int on_disconnect(memif_conn_handle_t conn, void *private_ctx)
 {
+	Memif_Context_t *mc = &md_context;
+
     clib_warning("memif disconnected!");
+    mc->state = DAQ_STATE_STOPPED;
+
     return 0;
 }
 
 int on_interrupt(memif_conn_handle_t conn, void *private_ctx, uint16_t qid)
 {
-    long index = *((long *) private_ctx);
+    u32 index = *((u32 *) private_ctx);
     Memif_Context_t *mmc = &md_context;
     Memif_Interface_t *iface;
     int err;
@@ -308,10 +314,10 @@ int on_interrupt(memif_conn_handle_t conn, void *private_ctx, uint16_t qid)
 
     err = memif_rx_burst (iface->conn, 0, iface->bufs, MAX_MEMIF_BUFS, &iface->rx_now);
     if (err != MEMIF_ERR_SUCCESS)
-        clib_warning("memif_tx_burst: %s", memif_strerror(err));
-    iface->rx_buf_num += iface->rx_now;
+        clib_warning("memif_rx_burst: %s", memif_strerror(err));
+    DBG ("interrupt with %u packets", iface->rx_now);
 
-    clib_warning ("interrupt");
+    iface->rx_buf_num += iface->rx_now;
     return 0;
 }
 
@@ -321,15 +327,15 @@ static int memif_daq_init_memif_iface (Memif_Interface_t *iface)
     int err;
 
     memset(&args, 0, sizeof(args));
-    args.mode = 0;
+    args.mode = 1;
     args.interface_id = 0;
     args.is_master = 0;
     args.log2_ring_size = 11;
-    args.buffer_size = 2048;
+    args.buffer_size = MEMIF_IFACE_BUFFER_SIZE;
     args.num_s2m_rings = 1;
     args.num_m2s_rings = 1;
     strncpy((char * ) args.interface_name, IFACE_NAME, strlen(IFACE_NAME));
-    err = memif_create(&iface->conn, &args, on_connect, on_disconnect, on_interrupt, NULL);
+    err = memif_create(&iface->conn, &args, on_connect, on_disconnect, on_interrupt, &iface->index);
     if (err != MEMIF_ERR_SUCCESS)
     {
         clib_warning("memif_create: %s", memif_strerror(err));
@@ -356,6 +362,7 @@ static void vl_api_memif_create_reply_t_handler(vl_api_memif_create_reply_t * mp
     {
         vec_add2 (mmc->ifaces, iface, 1);
         iface->sw_if_index = ntohl(mp->sw_if_index);
+        iface->index = 0;
         iface->conn = NULL;
 
     	clib_warning ("memif interface created %u", iface->sw_if_index);
@@ -488,7 +495,6 @@ static int memif_daq_initialize(const DAQ_Config_t *config, void **ctxt_ptr, cha
      * Init lib
      */
     mmc->epfd = epoll_create (1);
-    add_epoll_fd (mmc->epfd, 0, EPOLLIN);
     err = memif_init (control_fd_update, APP_NAME, NULL, NULL);
     if (err != MEMIF_ERR_SUCCESS)
     {
@@ -521,6 +527,7 @@ static int memif_daq_set_filter(void *handle, const char *filter)
 static int memif_daq_start(void *handle)
 {
     Memif_Context_t *mmc = (Memif_Context_t *) handle;
+    DBG ("daq module started");
     mmc->state = DAQ_STATE_STARTED;
     return DAQ_SUCCESS;
 }
@@ -551,7 +558,7 @@ static int memif_daq_acquire(void *handle, int cnt, DAQ_Analysis_Func_t callback
 
     err = memif_rx_burst (iface->conn, 0, iface->bufs, MAX_MEMIF_BUFS, &iface->rx_now);
     if (err != MEMIF_ERR_SUCCESS)
-        clib_warning("memif_tx_burst: %s", memif_strerror(err));
+        clib_warning("memif_rx_burst: %s", memif_strerror(err));
     iface->rx_buf_num += iface->rx_now;
 
     memset (&evt, 0, sizeof (evt));
@@ -622,42 +629,42 @@ static int memif_daq_acquire(void *handle, int cnt, DAQ_Analysis_Func_t callback
             err = memif_refill_queue(iface->conn, rx_qid, iface->rx_now, 0);
             if (err != MEMIF_ERR_SUCCESS)
                 clib_warning("memif refill queue: %s", memif_strerror(err));
+            iface->rx_now = 0;
         }
-        else
-        {
-            en = epoll_wait(mmc->epfd, &evt, 1, mmc->timeout);
-            if (en > 0)
-            {
-                /* this app does not use any other file descriptors than stds and memif control fds */
-                if (evt.data.fd > 2)
-                {
-                    if (evt.events & EPOLLIN)
-                        memif_events |= MEMIF_FD_EVENT_READ;
-                    if (evt.events & EPOLLOUT)
-                        memif_events |= MEMIF_FD_EVENT_WRITE;
-                    if (evt.events & EPOLLERR)
-                        memif_events |= MEMIF_FD_EVENT_ERROR;
-                    memif_err = memif_control_fd_handler(evt.data.fd, memif_events);
-                    if (memif_err != MEMIF_ERR_SUCCESS)
-                        clib_warning("memif_control_fd_handler: %s", memif_strerror(memif_err));
-                }
-                else
-                {
-                    DBG("unexpected event at memif_epfd. fd %d", evt.data.fd);
-                    break;
-                }
-                gettimeofday(&ts, NULL);
-            }
-            else if (en == 0)
-            {
-                break;
-            }
-            else
-            {
-                DBG("epoll_wait: %s", strerror (errno));
-                return -1;
-            }
-        }
+
+		en = epoll_wait(mmc->epfd, &evt, 1, mmc->timeout);
+		if (en > 0)
+		{
+			/* this app does not use any other file descriptors than stds and memif control fds */
+			if (evt.data.fd > 2)
+			{
+				if (evt.events & EPOLLIN)
+					memif_events |= MEMIF_FD_EVENT_READ;
+				if (evt.events & EPOLLOUT)
+					memif_events |= MEMIF_FD_EVENT_WRITE;
+				if (evt.events & EPOLLERR)
+					memif_events |= MEMIF_FD_EVENT_ERROR;
+				memif_err = memif_control_fd_handler(evt.data.fd, memif_events);
+				if (memif_err != MEMIF_ERR_SUCCESS)
+					clib_warning("memif_control_fd_handler: %s",
+							memif_strerror(memif_err));
+			}
+			else
+			{
+				DBG("unexpected event at memif_epfd. fd %d", evt.data.fd);
+				break;
+			}
+			gettimeofday(&ts, NULL);
+		}
+		else if (en == 0)
+		{
+			break;
+		}
+		else
+		{
+			DBG("epoll_wait: %s", strerror (errno));
+			return -1;
+		}
     }
 
     return 0;
@@ -691,7 +698,6 @@ static void memif_daq_shutdown(void *handle)
     memif_daq_close(mc);
     if (mc->device)
         free(mc->device);
-    free(mc);
 }
 
 static DAQ_State memif_daq_check_status(void *handle)

@@ -8,6 +8,14 @@ modular nature allows you to build new modules for other platforms.
 
 This README summarizes the important things you need to know to use the DAQ.
 
+Building Memif DAQ
+==================
+
+First build libmemif. Then:
+
+    ./configure --with-memif-libraries=/path/to/vpp/extras/libmemif/.libs -with-memif-includes=/path/to/vpp/extras/libmemif/src --with-vpp-libraries=/path/to/vpp/build-root/install-vpp_debug-native/vpp/lib64 --with-vpp-includes=/path/to/vpp/build-root/install-vpp_debug-native/vpp/include
+    make
+    make install
 
 Building the DAQ Library and DAQ Modules
 ========================================

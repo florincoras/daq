@@ -119,6 +119,22 @@ if test "x$with_memif_includes" != "xno"; then
     CPPFLAGS="${CPPFLAGS} -I${with_memif_includes}"
 fi
 
+AC_ARG_WITH(vpp_includes,
+            [  --with-vpp-includes=DIR    vpp include directory],
+            [with_vpp_includes="$withval"], [with_vpp_includes="no"])
+
+if test "x$with_vpp_includes" != "xno"; then
+    CPPFLAGS="${CPPFLAGS} -I${with_vpp_includes}"
+fi
+
+AC_ARG_WITH(vpp_libraries,
+            [  --with-vpp-libraries=DIR    vpp library directory],
+            [with_vpp_libraries="$withval"], [with_vpp_libraries="no"])
+
+if test "x$with_vpp_libraries" != "xno"; then
+    VPP_LDFLAGS="-L${with_vpp_libraries}"
+fi
+
 AC_ARG_WITH(memif_libraries,
             [  --with-memif-libraries=DIR    memif library directory],
             [with_memif_libraries="$withval"], [with_memif_libraries="no"])
@@ -260,11 +276,12 @@ if test "$enable_memif_module" = yes; then
 #                   #include <net/netmap.h>
 #                   ])
     if test "$enable_memif_module" = yes; then
-        STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} -lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
+        STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} ${VPP_LDFLAGS}-lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
 	CFLAGS="${CFLAGS} -std=gnu11 -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare"
     fi
 fi
 AC_SUBST(MEMIF_LDFLAGS)
+AC_SUBST(VPP_LDFLAGS)
 AM_CONDITIONAL([BUILD_MEMIF_MODULE], [test "$enable_memif_module" = yes])
 
 if test "$enable_ipq_module" = yes -o "$enable_nfq_module" = yes ; then
