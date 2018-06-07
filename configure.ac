@@ -260,10 +260,11 @@ if test "$enable_memif_module" = yes; then
 #                   #include <net/netmap.h>
 #                   ])
     if test "$enable_memif_module" = yes; then
-        STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} -lsvm -lvlibmemoryclient -lvppinfra"
+        STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} -lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
 	CFLAGS="${CFLAGS} -std=gnu11 -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare"
     fi
 fi
+AC_SUBST(MEMIF_LDFLAGS)
 AM_CONDITIONAL([BUILD_MEMIF_MODULE], [test "$enable_memif_module" = yes])
 
 if test "$enable_ipq_module" = yes -o "$enable_nfq_module" = yes ; then

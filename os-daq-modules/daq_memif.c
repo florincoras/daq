@@ -27,9 +27,11 @@
 #include <libmemif.h>
 #include <sys/epoll.h>
 
+#include <vlibapi/api.h>
 #include <vlibmemory/api.h>
-#include <vpp/api/vpe_msg_enum.h>
-#include <vnet/api_errno.h>
+
+//#include <vpp/api/vpe_msg_enum.h>
+//#include <vnet/api_errno.h>
 
 #define vl_msg_id(n,h) n,
 typedef enum
@@ -77,7 +79,7 @@ typedef enum
 #define ERR(_msg) snprintf(errbuf, errlen, "%s: %s", __func__, _msg);
 
 #if DAQ_MEMIF_DBG > 0
-#define DBG(_fmt, ...) clib_warning (_fmt, __VA_ARGS__);
+#define DBG(_fmt, args...) clib_warning (_fmt, ## args)
 #else
 #defien DBG(_fmt, ...)
 #endif
@@ -249,7 +251,8 @@ static void memif_daq_send_create_memif (Memif_Context_t *mmc)
     mp = vl_msg_api_alloc (sizeof (*mp));
     memset (mp, 0, sizeof (*mp));
 
-    mp->_vl_msg_id = ntohs (VL_API_MEMIF_CREATE);
+    mp->_vl_msg_id = ntohs (mmc->memif_msg_id_base + VL_API_MEMIF_CREATE);
+    mp->client_index = mmc->client_index;
     mp->mode = MEMIF_INTERFACE_MODE_IP;
     mp->id = 0;
     mp->role = 0;
@@ -267,6 +270,9 @@ static void memif_daq_send_snort_enable_disable (Memif_Context_t *mmc, u8 is_ena
     vl_api_snort_enable_disable_t *mp;
     mp = vl_msg_api_alloc (sizeof (*mp));
     memset (mp, 0, sizeof (*mp));
+
+    mp->_vl_msg_id = ntohs (mmc->snort_msg_id_base + VL_API_SNORT_ENABLE_DISABLE);
+    mp->client_index = mmc->client_index;
 
     /* Only one memif interface for now */
     mp->sw_if_index = htonl (mmc->ifaces[0].sw_if_index);
@@ -352,6 +358,8 @@ static void vl_api_memif_create_reply_t_handler(vl_api_memif_create_reply_t * mp
         iface->sw_if_index = ntohl(mp->sw_if_index);
         iface->conn = NULL;
 
+    	clib_warning ("memif interface created %u", iface->sw_if_index);
+
         if (memif_daq_init_memif_iface(iface))
         {
             clib_warning("failed to init memif interface");
@@ -360,6 +368,10 @@ static void vl_api_memif_create_reply_t_handler(vl_api_memif_create_reply_t * mp
 
         memif_daq_send_snort_enable_disable (mmc, 1/* enable */);
     }
+    else
+    {
+        clib_warning("vpp failed to create memif interface");
+    }
 }
 
 static void vl_api_snort_enable_disable_reply_t_handler(vl_api_snort_enable_disable_reply_t * mp)
@@ -367,7 +379,14 @@ static void vl_api_snort_enable_disable_reply_t_handler(vl_api_snort_enable_disa
     Memif_Context_t *mmc = &md_context;
 
     if (!mp->retval)
+    {
         mmc->state = DAQ_STATE_INITIALIZED;
+    	DBG ("vpp snort plugin initialized!");
+    }
+    else
+    {
+    	clib_warning ("failed to initialize vpp snort plugin");
+    }
 }
 
 #define foreach_memif_daq_msg                                   \
@@ -376,16 +395,24 @@ _(MEMIF_CREATE_REPLY, memif_create_reply)                      	\
 #define foreach_snort_msg										\
 _(SNORT_ENABLE_DISABLE_REPLY, snort_enable_disable_reply)       \
 
+
 int md_connect_to_vpp(Memif_Context_t *mmc)
 {
     char *name = "snort_memif_daq";
     api_main_t *am = &api_main;
 
-    name = format (0, "memif_%08x%c", memif_api_version, 0);
-    mmc->memif_msg_id_base = vl_client_get_first_plugin_msg_id ((char *) name);
-    vec_reset_length(name);
-    name = format (name, "snort_%08x%c", snort_api_version, 0);
-    mmc->snort_msg_id_base = vl_client_get_first_plugin_msg_id ((char *) name);
+    /*
+     * Connect to vpp
+     */
+	if (vl_client_connect_to_vlib("/vpe-api", name, 32) < 0)
+		return -1;
+
+	name = format(0, "memif_%08x%c", memif_api_version, 0);
+	mmc->memif_msg_id_base = vl_client_get_first_plugin_msg_id((char *) name);
+	vec_reset_length(name);
+	name = format(name, "snort_%08x%c", snort_api_version, 0);
+	mmc->snort_msg_id_base = vl_client_get_first_plugin_msg_id((char *) name);
+	vec_free (name);
 
     /*
      * Setup msg handlers
@@ -413,19 +440,13 @@ int md_connect_to_vpp(Memif_Context_t *mmc)
 #undef _
 
     /*
-     * Connect to vpp
-     */
-    if (vl_client_connect_to_vlib("/vpe-api", name, 32) < 0)
-        return -1;
-
-    /*
      * Initialize error strings
      */
-    mmc->error_string_by_error_number = hash_create(0, sizeof(uword));
-#define _(n,v,s) hash_set (mmc->error_string_by_error_number, -v, s);
-    foreach_vnet_api_error
-#undef _
-    hash_set(mmc->error_string_by_error_number, 99, "Misc");
+//    mmc->error_string_by_error_number = hash_create(0, sizeof(uword));
+//#define _(n,v,s) hash_set (mmc->error_string_by_error_number, -v, s);
+//    foreach_vnet_api_error
+//#undef _
+//    hash_set(mmc->error_string_by_error_number, 99, "Misc");
 
     mmc->vl_input_queue = am->shmem_hdr->vl_input_queue;
     mmc->client_index = am->my_client_index;
@@ -745,7 +766,7 @@ const DAQ_Module_t memif_daq_module_data =
 {
     /* .api_version = */DAQ_API_VERSION,
     /* .module_version = */DAQ_MEMIF_VERSION,
-    /* .name = */"memif_daq",
+    /* .name = */"memif",
     /* .type = */DAQ_TYPE_INLINE_CAPABLE | DAQ_TYPE_INTF_CAPABLE | DAQ_TYPE_MULTI_INSTANCE,
     /* .initialize = */memif_daq_initialize,
     /* .set_filter = */memif_daq_set_filter,

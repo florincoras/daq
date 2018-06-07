@@ -651,6 +651,7 @@ BUILD_MODULES_TRUE
 DNET_LDFLAGS
 BUILD_MEMIF_MODULE_FALSE
 BUILD_MEMIF_MODULE_TRUE
+MEMIF_LDFLAGS
 BUILD_NETMAP_MODULE_FALSE
 BUILD_NETMAP_MODULE_TRUE
 BUILD_PCAP_MODULE_FALSE
@@ -13436,10 +13437,11 @@ if test "$enable_memif_module" = yes; then
 #                   #include <net/netmap.h>
 #                   ])
     if test "$enable_memif_module" = yes; then
-        STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} -lsvm -lvlibmemoryclient -lvppinfra"
+        STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} -lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
 	CFLAGS="${CFLAGS} -std=gnu11 -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare"
     fi
 fi
+
  if test "$enable_memif_module" = yes; then
   BUILD_MEMIF_MODULE_TRUE=
   BUILD_MEMIF_MODULE_FALSE='#'
