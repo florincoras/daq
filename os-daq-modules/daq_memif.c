@@ -30,9 +30,6 @@
 #include <vlibapi/api.h>
 #include <vlibmemory/api.h>
 
-//#include <vpp/api/vpe_msg_enum.h>
-//#include <vnet/api_errno.h>
-
 #define vl_msg_id(n,h) n,
 typedef enum
 {
@@ -383,11 +380,11 @@ static void vl_api_memif_create_reply_t_handler(vl_api_memif_create_reply_t * mp
 
 static void vl_api_snort_enable_disable_reply_t_handler(vl_api_snort_enable_disable_reply_t * mp)
 {
-    Memif_Context_t *mmc = &md_context;
+    Memif_Context_t *mc = &md_context;
 
     if (!mp->retval)
     {
-        mmc->state = DAQ_STATE_INITIALIZED;
+        mc->state = DAQ_STATE_INITIALIZED;
     	DBG ("vpp snort plugin initialized!");
     }
     else
@@ -396,14 +393,23 @@ static void vl_api_snort_enable_disable_reply_t_handler(vl_api_snort_enable_disa
     }
 }
 
-#define foreach_memif_daq_msg                                   \
-_(MEMIF_CREATE_REPLY, memif_create_reply)                      	\
+static void vl_api_snort_interface_flow_add_del_reply_t_handler(vl_api_snort_interface_add_del_reply_t * mp)
+{
+    if (mp->retval)
+    {
+    	clib_warning ("failed to add flow to vpp");
+    }
+}
 
-#define foreach_snort_msg										\
-_(SNORT_ENABLE_DISABLE_REPLY, snort_enable_disable_reply)       \
+#define foreach_memif_daq_msg                                   			\
+_(MEMIF_CREATE_REPLY, memif_create_reply)                      				\
+
+#define foreach_snort_msg													\
+_(SNORT_ENABLE_DISABLE_REPLY, snort_enable_disable_reply)       			\
+_(SNORT_INTERFACE_FLOW_ADD_DEL_REPLY, snort_interface_flow_add_del_reply)  	\
 
 
-int md_connect_to_vpp(Memif_Context_t *mmc)
+int md_connect_to_vpp(Memif_Context_t *mc)
 {
     char *name = "snort_memif_daq";
     api_main_t *am = &api_main;
@@ -415,17 +421,17 @@ int md_connect_to_vpp(Memif_Context_t *mmc)
 		return -1;
 
 	name = format(0, "memif_%08x%c", memif_api_version, 0);
-	mmc->memif_msg_id_base = vl_client_get_first_plugin_msg_id((char *) name);
+	mc->memif_msg_id_base = vl_client_get_first_plugin_msg_id((char *) name);
 	vec_reset_length(name);
 	name = format(name, "snort_%08x%c", snort_api_version, 0);
-	mmc->snort_msg_id_base = vl_client_get_first_plugin_msg_id((char *) name);
+	mc->snort_msg_id_base = vl_client_get_first_plugin_msg_id((char *) name);
 	vec_free (name);
 
     /*
      * Setup msg handlers
      */
 #define _(N,n)                                                  \
-    vl_msg_api_set_handlers(VL_API_##N + mmc->memif_msg_id_base,\
+    vl_msg_api_set_handlers(VL_API_##N + mc->memif_msg_id_base,	\
                            #n,                     				\
                            vl_api_##n##_t_handler,              \
                            vl_noop_handler,                     \
@@ -436,7 +442,7 @@ int md_connect_to_vpp(Memif_Context_t *mmc)
 #undef _
 
 #define _(N,n)                                                  \
-    vl_msg_api_set_handlers(VL_API_##N + mmc->snort_msg_id_base,\
+    vl_msg_api_set_handlers(VL_API_##N + mc->snort_msg_id_base,	\
                            #n,                     				\
                            vl_api_##n##_t_handler,              \
                            vl_noop_handler,                     \
@@ -446,17 +452,8 @@ int md_connect_to_vpp(Memif_Context_t *mmc)
   foreach_snort_msg
 #undef _
 
-    /*
-     * Initialize error strings
-     */
-//    mmc->error_string_by_error_number = hash_create(0, sizeof(uword));
-//#define _(n,v,s) hash_set (mmc->error_string_by_error_number, -v, s);
-//    foreach_vnet_api_error
-//#undef _
-//    hash_set(mmc->error_string_by_error_number, 99, "Misc");
-
-    mmc->vl_input_queue = am->shmem_hdr->vl_input_queue;
-    mmc->client_index = am->my_client_index;
+    mc->vl_input_queue = am->shmem_hdr->vl_input_queue;
+    mc->client_index = am->my_client_index;
 
     return 0;
 }
@@ -526,9 +523,9 @@ static int memif_daq_set_filter(void *handle, const char *filter)
 
 static int memif_daq_start(void *handle)
 {
-    Memif_Context_t *mmc = (Memif_Context_t *) handle;
+    Memif_Context_t *mc = (Memif_Context_t *) handle;
     DBG ("daq module started");
-    mmc->state = DAQ_STATE_STARTED;
+    mc->state = DAQ_STATE_STARTED;
     return DAQ_SUCCESS;
 }
 
@@ -541,6 +538,110 @@ static const DAQ_Verdict verdict_translation_table[MAX_DAQ_VERDICT] = {
     DAQ_VERDICT_PASS,       /* DAQ_VERDICT_IGNORE */
     DAQ_VERDICT_BLOCK       /* DAQ_VERDICT_RETRY */
 };
+
+typedef union
+{
+  u8 data[4];
+  u32 data_u32;
+  /* Aliases. */
+  u8 as_u8[4];
+  u16 as_u16[2];
+  u32 as_u32;
+} ip4_address_t;
+
+typedef union {
+  struct {
+    u32 pad[3];
+    ip4_address_t ip4;
+  };
+//  ip6_address_t ip6;
+  u8 as_u8[16];
+  u64 as_u64[2];
+} __attribute__ ((packed)) ip46_address_t;
+
+typedef struct
+{
+    u8 ip_version_and_header_length;
+    u8 tos;
+    u16 length;
+    u16 fragment_id;
+    u16 flags_and_fragment_offset;
+#define IP4_HEADER_FLAG_MORE_FRAGMENTS (1 << 13)
+#define IP4_HEADER_FLAG_DONT_FRAGMENT (1 << 14)
+#define IP4_HEADER_FLAG_CONGESTION (1 << 15)
+    u8 ttl;
+    u8 protocol;
+    u16 checksum;
+	ip4_address_t src_address;
+	ip4_address_t dst_address;
+} ip4_header_t;
+
+static int
+ip4_header_bytes (ip4_header_t * i)
+{
+  return sizeof (u32) * (i->ip_version_and_header_length & 0xf);
+}
+
+static void *
+ip4_next_header (ip4_header_t * i)
+{
+  return (void *) i + ip4_header_bytes (i);
+}
+
+typedef struct
+{
+  u16 src_port;
+  u16 dst_port;
+  u16 length;
+  u16 checksum;
+} udp_header_t;
+
+static void memif_daq_send_vpp_flow_action (Memif_Context_t *mc, memif_buffer_t *b, DAQ_Verdict verdict)
+{
+    vl_api_snort_interface_flow_add_del_t *mp;
+    ip46_address_t src_ip, dst_ip;
+    ip4_header_t *ih4;
+    udp_header_t *uh = 0;
+    u8 proto = 0;
+    u32 sw_if_index;
+
+    mp = vl_msg_api_alloc (sizeof (*mp));
+    memset (mp, 0, sizeof (*mp));
+
+    mp->_vl_msg_id = ntohs (mc->snort_msg_id_base + VL_API_SNORT_INTERFACE_FLOW_ADD_DEL);
+    mp->client_index = mc->client_index;
+
+    sw_if_index = *(u32*) b->data;
+    ih4 = b->data + sizeof (u32);
+    if ((ih4->ip_version_and_header_length & 0xF0) == 0x40)
+    {
+    	src_ip.ip4.as_u32 = ih4->src_address.as_u32;
+    	dst_ip.ip4.as_u32 = ih4->dst_address.as_u32;
+    	proto = ih4->protocol;
+    	if (proto == 6 || proto == 17)
+			uh = ip4_next_header(ih4);
+    	mp->is_ip4 = 1;
+    }
+    else
+    {
+    	mp->is_ip4 = 0;
+    	clib_warning ("V6 NOT SUPPORTED");
+    	/*v6 TODO */
+    }
+
+    clib_memcpy (mp->src, &src_ip, sizeof (src_ip));
+    clib_memcpy (mp->dst, &dst_ip, sizeof (dst_ip));
+	if (uh)
+	{
+		mp->src_port = uh->src_port;
+		mp->dst_port = uh->dst_port;
+	}
+	mp->proto = proto;
+    mp->sw_if_index = clib_host_to_net_u32 (sw_if_index);
+    mp->action = verdict == DAQ_VERDICT_PASS;
+    mp->is_add = 1;
+    vl_msg_api_send_shmem (mc->vl_input_queue, (u8 *) & mp);
+}
 
 static int memif_daq_acquire(void *handle, int cnt, DAQ_Analysis_Func_t callback, DAQ_Meta_Func_t metaback, void *user)
 {
@@ -595,7 +696,7 @@ static int memif_daq_acquire(void *handle, int cnt, DAQ_Analysis_Func_t callback
 
             if (callback)
             {
-                verdict = callback(user, &daqhdr, rx_buf->data);
+                verdict = callback(user, &daqhdr, rx_buf->data + sizeof (u32));
                 if (verdict >= MAX_DAQ_VERDICT)
                     verdict = DAQ_VERDICT_PASS;
                 verdict = verdict_translation_table[verdict];
@@ -605,8 +706,12 @@ static int memif_daq_acquire(void *handle, int cnt, DAQ_Analysis_Func_t callback
             if (verdict == DAQ_VERDICT_PASS)
             {
                 tx_bufs[tx_cnt] = iface->bufs[i];
+                tx_bufs[tx_cnt].data += sizeof (u32);
+                tx_bufs[tx_cnt].len -= sizeof (u32);
                 tx_cnt++;
             }
+
+            memif_daq_send_vpp_flow_action (mmc, rx_buf, verdict);
         }
 
         if (tx_cnt)
