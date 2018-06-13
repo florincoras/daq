@@ -78,7 +78,7 @@ typedef enum
 #if DAQ_MEMIF_DBG > 0
 #define DBG(_fmt, args...) clib_warning (_fmt, ## args)
 #else
-#defien DBG(_fmt, ...)
+#define DBG(_fmt, args...)
 #endif
 
 struct memif_context_;
