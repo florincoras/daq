@@ -119,12 +119,16 @@ if test "x$with_memif_includes" != "xno"; then
     CPPFLAGS="${CPPFLAGS} -I${with_memif_includes}"
 fi
 
+AC_ARG_WITH(memif_libraries,
+            [  --with-memif-libraries=DIR    memif library directory],
+            [with_memif_libraries="$withval"], [with_memif_libraries="no"])
+
 AC_ARG_WITH(vpp_includes,
             [  --with-vpp-includes=DIR    vpp include directory],
             [with_vpp_includes="$withval"], [with_vpp_includes="no"])
 
 if test "x$with_vpp_includes" != "xno"; then
-    CPPFLAGS="${CPPFLAGS} -I${with_vpp_includes}"
+    CPPFLAGS="${CPPFLAGS} -I${with_vpp_includes} -I${with_vpp_includes}/vpp_plugins"
 fi
 
 AC_ARG_WITH(vpp_libraries,
@@ -134,10 +138,6 @@ AC_ARG_WITH(vpp_libraries,
 if test "x$with_vpp_libraries" != "xno"; then
     VPP_LDFLAGS="-L${with_vpp_libraries}"
 fi
-
-AC_ARG_WITH(memif_libraries,
-            [  --with-memif-libraries=DIR    memif library directory],
-            [with_memif_libraries="$withval"], [with_memif_libraries="no"])
 
 if test "x$with_memif_libraries" != "xno"; then
     MEMIF_LDFLAGS="-L${with_memif_libraries}"
@@ -264,21 +264,8 @@ AC_ARG_ENABLE(memif-module,
               AS_HELP_STRING([--disable-memif-module],[don't build the bundled memif module]),
               [enable_memif_module="$enableval"], [enable_memif_module="$DEFAULT_ENABLE"])
 if test "$enable_memif_module" = yes; then
-#    AC_CHECK_HEADERS([libmemif/libmemif.h], [], [enable_memif_module=no], [
-#                      #include <stdint.h>
-#                      #include <sys/socket.h>
-#                      #include <net/if.h>
-#                      ])
-#    AC_CHECK_DECL([MEMIF_API], [], [enable_netmap_module=no], [
-#                   #include <stdint.h>
-#                   #include <sys/socket.h>
-#                   #include <net/if.h>
-#                   #include <net/netmap.h>
-#                   ])
-    if test "$enable_memif_module" = yes; then
-        STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} ${VPP_LDFLAGS}-lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
-	CFLAGS="${CFLAGS} -std=gnu11 -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare"
-    fi
+    STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} ${VPP_LDFLAGS} -lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
+    CFLAGS="${CFLAGS} -std=gnu11 -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare -I/usr/include/vpp_plugins"
 fi
 AC_SUBST(MEMIF_LDFLAGS)
 AC_SUBST(VPP_LDFLAGS)

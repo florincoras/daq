@@ -71,7 +71,7 @@ typedef enum
 #undef vl_printfun
 
 #define DAQ_MEMIF_VERSION       1
-#define DAQ_MEMIF_DBG           1
+#define DAQ_MEMIF_DBG           0
 
 #define ERR(_msg) snprintf(errbuf, errlen, "%s: %s", __func__, _msg);
 
@@ -311,7 +311,7 @@ int on_interrupt(memif_conn_handle_t conn, void *private_ctx, uint16_t qid)
 
     err = memif_rx_burst (iface->conn, 0, iface->bufs, MAX_MEMIF_BUFS, &iface->rx_now);
     if (err != MEMIF_ERR_SUCCESS)
-        clib_warning("memif_rx_burst: %s", memif_strerror(err));
+        DBG ("memif_rx_burst: %s", memif_strerror(err));
     DBG ("interrupt with %u packets", iface->rx_now);
 
     iface->rx_buf_num += iface->rx_now;
@@ -659,7 +659,7 @@ static int memif_daq_acquire(void *handle, int cnt, DAQ_Analysis_Func_t callback
 
     err = memif_rx_burst (iface->conn, 0, iface->bufs, MAX_MEMIF_BUFS, &iface->rx_now);
     if (err != MEMIF_ERR_SUCCESS)
-        clib_warning("memif_rx_burst: %s", memif_strerror(err));
+		DBG("memif_rx_burst: %s", memif_strerror(err));
     iface->rx_buf_num += iface->rx_now;
 
     memset (&evt, 0, sizeof (evt));

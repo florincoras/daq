@@ -8,7 +8,7 @@
 prefix=/usr/local
 exec_prefix=${prefix}
 LIBDIR=${exec_prefix}/lib
-STATIC_LIBS=" -lsfbpf -lpcap -lsfbpf -lpcap -lsfbpf -L/scratch/fcoras/libmemif/.libs -L/scratch/fcoras/vpp/build-root/install-vpp_debug-native/vpp/lib64-lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
+STATIC_LIBS=" -lsfbpf -lpcap -lsfbpf -lpcap -lsfbpf -L/scratch/fcoras/libmemif/.libs  -lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
 
 static=0
 show_libs=0

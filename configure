@@ -805,9 +805,9 @@ with_dnet_includes
 with_dnet_libraries
 with_netmap_includes
 with_memif_includes
+with_memif_libraries
 with_vpp_includes
 with_vpp_libraries
-with_memif_libraries
 enable_bundled_modules
 enable_afpacket_module
 enable_dump_module
@@ -1502,9 +1502,9 @@ Optional Packages:
   --with-dnet-libraries=DIR   dnet library directory
   --with-netmap-includes=DIR    netmap include directory
   --with-memif-includes=DIR    memif include directory
+  --with-memif-libraries=DIR    memif library directory
   --with-vpp-includes=DIR    vpp include directory
   --with-vpp-libraries=DIR    vpp library directory
-  --with-memif-libraries=DIR    memif library directory
 
 Some influential environment variables:
   CC          C compiler command
@@ -12940,6 +12940,15 @@ if test "x$with_memif_includes" != "xno"; then
 fi
 
 
+# Check whether --with-memif_libraries was given.
+if test "${with_memif_libraries+set}" = set; then :
+  withval=$with_memif_libraries; with_memif_libraries="$withval"
+else
+  with_memif_libraries="no"
+fi
+
+
+
 # Check whether --with-vpp_includes was given.
 if test "${with_vpp_includes+set}" = set; then :
   withval=$with_vpp_includes; with_vpp_includes="$withval"
@@ -12949,7 +12958,7 @@ fi
 
 
 if test "x$with_vpp_includes" != "xno"; then
-    CPPFLAGS="${CPPFLAGS} -I${with_vpp_includes}"
+    CPPFLAGS="${CPPFLAGS} -I${with_vpp_includes} -I${with_vpp_includes}/vpp_plugins"
 fi
 
 
@@ -12964,15 +12973,6 @@ fi
 if test "x$with_vpp_libraries" != "xno"; then
     VPP_LDFLAGS="-L${with_vpp_libraries}"
 fi
-
-
-# Check whether --with-memif_libraries was given.
-if test "${with_memif_libraries+set}" = set; then :
-  withval=$with_memif_libraries; with_memif_libraries="$withval"
-else
-  with_memif_libraries="no"
-fi
-
 
 if test "x$with_memif_libraries" != "xno"; then
     MEMIF_LDFLAGS="-L${with_memif_libraries}"
@@ -13456,21 +13456,8 @@ else
 fi
 
 if test "$enable_memif_module" = yes; then
-#    AC_CHECK_HEADERS([libmemif/libmemif.h], [], [enable_memif_module=no], [
-#                      #include <stdint.h>
-#                      #include <sys/socket.h>
-#                      #include <net/if.h>
-#                      ])
-#    AC_CHECK_DECL([MEMIF_API], [], [enable_netmap_module=no], [
-#                   #include <stdint.h>
-#                   #include <sys/socket.h>
-#                   #include <net/if.h>
-#                   #include <net/netmap.h>
-#                   ])
-    if test "$enable_memif_module" = yes; then
-        STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} ${VPP_LDFLAGS}-lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
-	CFLAGS="${CFLAGS} -std=gnu11 -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare"
-    fi
+    STATIC_LIBS="${STATIC_LIBS} -lsfbpf ${MEMIF_LDFLAGS} ${VPP_LDFLAGS} -lvppinfra -lsvm -lvlibmemoryclient -lmemif -lpthread -lm -lrt"
+    CFLAGS="${CFLAGS} -std=gnu11 -Wno-pedantic -Wno-discarded-qualifiers -Wno-sign-compare -I/usr/include/vpp_plugins"
 fi
 
 
